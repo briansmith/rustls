@@ -16,7 +16,7 @@ base64 = "0.6"
 log = { version = "0.3.6", optional = true }
 ring = { version = "0.12", features = ["rsa_signing"] }
 webpki = "0.17"
-sct = "0.2"
+sct = { git = "https://github.com/briansmith/sct.rs", tag = "b/p1" }
 
 [features]
 default = ["logging"]
@@ -30,8 +30,9 @@ mio = "0.6"
 docopt = "0.8"
 serde = "1.0"
 serde_derive = "1.0"
-webpki-roots = "0.13"
-ct-logs = "0.2"
+webpki-roots = { git = "https://github.com/briansmith/webpki-roots", tag = "b/p1" }
+ct-logs = { git = "https://github.com/briansmith/ct-logs", tag = "b/p1" }
+
 regex = "0.2"
 
 [[example]]
