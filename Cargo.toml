@@ -14,7 +14,7 @@ untrusted = "0.5.1"
 base64 = "0.6"
 log = { version = "0.3.6", optional = true }
 ring = { version = "0.12.1", features = ["rsa_signing"] }
-webpki = { git = "https://github.com/briansmith/webpki" }
+webpki = { git = "https://github.com/briansmith/webpki", branch = "b/p2" }
 sct = "0.2"
 
 [features]
@@ -29,7 +29,7 @@ mio = "0.6"
 docopt = "0.8"
 serde = "1.0"
 serde_derive = "1.0"
-webpki-roots = { git = "https://github.com/briansmith/webpki-roots", branch = "webpki-github" }
+webpki-roots = { git = "https://github.com/briansmith/webpki-roots", branch = "b/p2" }
 ct-logs = "0.2"
 regex = "0.2"
 
