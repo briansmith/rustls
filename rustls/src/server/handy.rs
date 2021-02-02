@@ -41,23 +41,22 @@ impl ServerSessionMemoryCache {
             max_entries: size,
         })
     }
-
-    fn limit_size(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        while cache.len() > self.max_entries {
-            let k = cache.keys().next().unwrap().clone();
-            cache.remove(&k);
-        }
-    }
 }
 
 impl server::StoresServerSessions for ServerSessionMemoryCache {
     fn put(&self, key: Vec<u8>, value: Vec<u8>) -> bool {
-        self.cache
+        let mut cache = self.cache
             .lock()
-            .unwrap()
-            .insert(key, value);
-        self.limit_size();
+            .unwrap();
+
+        cache.insert(key, value);
+
+        // Remove arbitrary entries to keep the cache within the requested size.
+        while cache.len() > self.max_entries {
+            let k = cache.keys().next().unwrap().clone();
+            cache.remove(&k);
+        }
+
         true
     }
 
