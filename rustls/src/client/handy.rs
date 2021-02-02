@@ -38,23 +38,20 @@ impl ClientSessionMemoryCache {
             max_entries: size,
         })
     }
-
-    fn limit_size(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        while cache.len() > self.max_entries {
-            let k = cache.keys().next().unwrap().clone();
-            cache.remove(&k);
-        }
-    }
 }
 
 impl client::StoresClientSessions for ClientSessionMemoryCache {
     fn put(&self, key: Vec<u8>, value: Vec<u8>) -> bool {
-        self.cache
-            .lock()
-            .unwrap()
-            .insert(key, value);
-        self.limit_size();
+        let mut cache = self.cache.lock().unwrap();
+        cache.insert(key, value);
+
+        // Remove arbitrary entries to keep the cache within the requested size.
+        while cache.len() > self.max_entries {
+            if let Some(key) = cache.keys().next().cloned() {
+                cache.remove(&key);
+            }
+        }
+
         true
     }
 
