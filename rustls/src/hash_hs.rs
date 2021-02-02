@@ -15,9 +15,6 @@ use std::mem;
 /// This is disabled in cases where client auth is not possible.
 pub struct HandshakeHash {
     /// None before we know what hash function we're using
-    alg: Option<&'static digest::Algorithm>,
-
-    /// None before we know what hash function we're using
     ctx: Option<digest::Context>,
 
     /// true if we need to keep all messages
@@ -30,7 +27,6 @@ pub struct HandshakeHash {
 impl HandshakeHash {
     pub fn new() -> HandshakeHash {
         HandshakeHash {
-            alg: None,
             ctx: None,
             client_auth_enabled: false,
             buffer: Vec::new(),
@@ -53,29 +49,25 @@ impl HandshakeHash {
 
     /// We now know what hash function the verify_data will use.
     pub fn start_hash(&mut self, alg: &'static digest::Algorithm) -> bool {
-        match self.alg {
-            None => {}
+        match &self.ctx {
+            None => {
+                let mut ctx = digest::Context::new(alg);
+                ctx.update(&self.buffer);
+                self.ctx = Some(ctx);
+                // Discard buffer if we don't need it now.
+                if !self.client_auth_enabled {
+                    self.buffer.drain(..);
+                }
+            },
             Some(started) => {
-                if started != alg {
+                if started.algorithm() != alg {
                     // hash type is changing
                     warn!("altered hash to HandshakeHash::start_hash");
                     return false;
                 }
-
-                return true;
             }
         }
-        self.alg = Some(alg);
-        debug_assert!(self.ctx.is_none());
 
-        let mut ctx = digest::Context::new(alg);
-        ctx.update(&self.buffer);
-        self.ctx = Some(ctx);
-
-        // Discard buffer if we don't need it now.
-        if !self.client_auth_enabled {
-            self.buffer.drain(..);
-        }
         true
     }
 
@@ -93,8 +85,8 @@ impl HandshakeHash {
 
     /// Hash or buffer a byte slice.
     fn update_raw(&mut self, buf: &[u8]) -> &mut Self {
-        if self.ctx.is_some() {
-            self.ctx.as_mut().unwrap().update(buf);
+        if let Some(ctx) = &mut self.ctx {
+            ctx.update(buf);
         }
 
         if self.ctx.is_none() || self.client_auth_enabled {
@@ -130,7 +122,7 @@ impl HandshakeHash {
         let old_handshake_hash_msg =
             HandshakeMessagePayload::build_handshake_hash(old_hash.as_ref());
 
-        self.ctx = Some(digest::Context::new(self.alg.unwrap()));
+        self.ctx = Some(digest::Context::new(old_hash.algorithm()));
         self.update_raw(&old_handshake_hash_msg.get_encoding());
     }
 
