@@ -224,7 +224,7 @@ impl PersistCache {
         use rustls::internal::msgs::base::PayloadU16;
         use rustls::internal::msgs::codec::Codec;
 
-        if self.filename.is_none() {
+        if let Some(filename) = if self.filename.is_none() {
             return;
         }
 
