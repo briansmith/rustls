@@ -27,7 +27,6 @@ use ring::constant_time;
 use std::mem;
 
 pub struct ExpectCertificate {
-    pub negotiated_version: ProtocolVersion,
     pub handshake: HandshakeDetails,
     pub server_cert: ServerCertDetails,
     pub may_send_cert_status: bool,
@@ -37,7 +36,6 @@ pub struct ExpectCertificate {
 impl ExpectCertificate {
     fn into_expect_certificate_status_or_server_kx(self) -> hs::NextState {
         Box::new(ExpectCertificateStatusOrServerKX {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             must_issue_new_ticket: self.must_issue_new_ticket,
@@ -46,7 +44,6 @@ impl ExpectCertificate {
 
     fn into_expect_server_kx(self) -> hs::NextState {
         Box::new(ExpectServerKX {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             must_issue_new_ticket: self.must_issue_new_ticket,
@@ -77,7 +74,6 @@ impl hs::State for ExpectCertificate {
 }
 
 struct ExpectCertificateStatus {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     must_issue_new_ticket: bool,
@@ -86,7 +82,6 @@ struct ExpectCertificateStatus {
 impl ExpectCertificateStatus {
     fn into_expect_server_kx(self) -> hs::NextState {
         Box::new(ExpectServerKX {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             must_issue_new_ticket: self.must_issue_new_ticket,
@@ -119,7 +114,6 @@ impl hs::State for ExpectCertificateStatus {
 }
 
 struct ExpectCertificateStatusOrServerKX {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     must_issue_new_ticket: bool,
@@ -128,7 +122,6 @@ struct ExpectCertificateStatusOrServerKX {
 impl ExpectCertificateStatusOrServerKX {
     fn into_expect_server_kx(self) -> hs::NextState {
         Box::new(ExpectServerKX {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             must_issue_new_ticket: self.must_issue_new_ticket,
@@ -137,7 +130,6 @@ impl ExpectCertificateStatusOrServerKX {
 
     fn into_expect_certificate_status(self) -> hs::NextState {
         Box::new(ExpectCertificateStatus {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             must_issue_new_ticket: self.must_issue_new_ticket,
@@ -166,7 +158,6 @@ impl hs::State for ExpectCertificateStatusOrServerKX {
 }
 
 struct ExpectServerKX {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     must_issue_new_ticket: bool,
@@ -175,7 +166,6 @@ struct ExpectServerKX {
 impl ExpectServerKX {
     fn into_expect_server_done_or_certreq(self, skx: ServerKXDetails) -> hs::NextState {
         Box::new(ExpectServerDoneOrCertReq {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             server_kx: skx,
@@ -340,7 +330,6 @@ fn emit_finished(
 // Existence of the CertificateRequest tells us the server is asking for
 // client auth.  Otherwise we go straight to ServerHelloDone.
 struct ExpectCertificateRequest {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     server_kx: ServerKXDetails,
@@ -350,7 +339,6 @@ struct ExpectCertificateRequest {
 impl ExpectCertificateRequest {
     fn into_expect_server_done(self, client_auth: ClientAuthDetails) -> hs::NextState {
         Box::new(ExpectServerDone {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             server_kx: self.server_kx,
@@ -413,7 +401,6 @@ impl hs::State for ExpectCertificateRequest {
 }
 
 struct ExpectServerDoneOrCertReq {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     server_kx: ServerKXDetails,
@@ -423,7 +410,6 @@ struct ExpectServerDoneOrCertReq {
 impl ExpectServerDoneOrCertReq {
     fn into_expect_certificate_req(self) -> hs::NextState {
         Box::new(ExpectCertificateRequest {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             server_kx: self.server_kx,
@@ -433,7 +419,6 @@ impl ExpectServerDoneOrCertReq {
 
     fn into_expect_server_done(self) -> hs::NextState {
         Box::new(ExpectServerDone {
-            negotiated_version: self.negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             server_kx: self.server_kx,
@@ -469,7 +454,6 @@ impl hs::State for ExpectServerDoneOrCertReq {
 }
 
 struct ExpectServerDone {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     server_cert: ServerCertDetails,
     server_kx: ServerKXDetails,
@@ -485,7 +469,6 @@ impl ExpectServerDone {
         sigv: verify::HandshakeSignatureValid,
     ) -> hs::NextState {
         Box::new(ExpectNewTicket {
-            negotiated_version: self.negotiated_version,
             secrets,
             handshake: self.handshake,
             resuming: false,
@@ -501,7 +484,6 @@ impl ExpectServerDone {
         sigv: verify::HandshakeSignatureValid,
     ) -> hs::NextState {
         Box::new(ExpectCCS {
-            negotiated_version: self.negotiated_version,
             secrets,
             handshake: self.handshake,
             ticket: ReceivedTicketDetails::new(),
@@ -662,7 +644,6 @@ impl hs::State for ExpectServerDone {
 
 // -- Waiting for their CCS --
 pub struct ExpectCCS {
-    pub negotiated_version: ProtocolVersion,
     pub secrets: SessionSecrets,
     pub handshake: HandshakeDetails,
     pub ticket: ReceivedTicketDetails,
@@ -674,7 +655,6 @@ pub struct ExpectCCS {
 impl ExpectCCS {
     fn into_expect_finished(self) -> hs::NextState {
         Box::new(ExpectFinished {
-            negotiated_version: self.negotiated_version,
             secrets: self.secrets,
             handshake: self.handshake,
             ticket: self.ticket,
@@ -702,7 +682,6 @@ impl hs::State for ExpectCCS {
 }
 
 pub struct ExpectNewTicket {
-    pub negotiated_version: ProtocolVersion,
     pub secrets: SessionSecrets,
     pub handshake: HandshakeDetails,
     pub resuming: bool,
@@ -713,7 +692,6 @@ pub struct ExpectNewTicket {
 impl ExpectNewTicket {
     fn into_expect_ccs(self, ticket: ReceivedTicketDetails) -> hs::NextState {
         Box::new(ExpectCCS {
-            negotiated_version: self.negotiated_version,
             secrets: self.secrets,
             handshake: self.handshake,
             ticket,
@@ -750,7 +728,6 @@ fn save_session(
     handshake: &mut HandshakeDetails,
     recvd_ticket: &mut ReceivedTicketDetails,
     sess: &mut ClientSessionImpl,
-    negotiated_version: ProtocolVersion,
 ) {
     // Save a ticket.  If we got a new ticket, save that.  Otherwise, save the
     // original ticket again.
@@ -772,7 +749,7 @@ fn save_session(
     let scs = sess.common.get_suite_assert();
     let master_secret = secrets.get_master_secret();
     let mut value = persist::ClientSessionValue::new(
-        negotiated_version,
+        ProtocolVersion::TLSv1_2,
         scs.suite,
         &handshake.session_id,
         ticket,
@@ -797,7 +774,6 @@ fn save_session(
 }
 
 struct ExpectFinished {
-    negotiated_version: ProtocolVersion,
     handshake: HandshakeDetails,
     ticket: ReceivedTicketDetails,
     secrets: SessionSecrets,
@@ -845,7 +821,7 @@ impl hs::State for ExpectFinished {
         // Hash this message too.
         st.handshake.transcript.add_message(&m);
 
-        save_session(&st.secrets, &mut st.handshake, &mut st.ticket, sess, st.negotiated_version);
+        save_session(&st.secrets, &mut st.handshake, &mut st.ticket, sess);
 
         if st.resuming {
             emit_ccs(sess);

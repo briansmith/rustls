@@ -465,13 +465,11 @@ impl ExpectServerHello {
 
     fn into_expect_tls12_new_ticket_resume(
         self,
-        negotiated_version: ProtocolVersion,
         secrets: SessionSecrets,
         certv: verify::ServerCertVerified,
         sigv: verify::HandshakeSignatureValid,
     ) -> NextState {
         Box::new(tls12::ExpectNewTicket {
-            negotiated_version,
             secrets,
             handshake: self.handshake,
             resuming: true,
@@ -482,13 +480,11 @@ impl ExpectServerHello {
 
     fn into_expect_tls12_ccs_resume(
         self,
-        negotiated_version: ProtocolVersion,
         secrets: SessionSecrets,
         certv: verify::ServerCertVerified,
         sigv: verify::HandshakeSignatureValid,
     ) -> NextState {
         Box::new(tls12::ExpectCCS {
-            negotiated_version,
             secrets,
             handshake: self.handshake,
             ticket: ReceivedTicketDetails::new(),
@@ -498,9 +494,8 @@ impl ExpectServerHello {
         })
     }
 
-    fn into_expect_tls12_certificate(self, negotiated_version: ProtocolVersion) -> NextState {
+    fn into_expect_tls12_certificate(self) -> NextState {
         Box::new(tls12::ExpectCertificate {
-            negotiated_version,
             handshake: self.handshake,
             server_cert: self.server_cert,
             may_send_cert_status: self.may_send_cert_status,
@@ -750,14 +745,14 @@ impl State for ExpectServerHello {
                 let sigv = verify::HandshakeSignatureValid::assertion();
 
                 return if self.must_issue_new_ticket {
-                    Ok(self.into_expect_tls12_new_ticket_resume(version, secrets, certv, sigv))
+                    Ok(self.into_expect_tls12_new_ticket_resume(secrets, certv, sigv))
                 } else {
-                    Ok(self.into_expect_tls12_ccs_resume(version, secrets, certv, sigv))
+                    Ok(self.into_expect_tls12_ccs_resume(secrets, certv, sigv))
                 };
             }
         }
 
-        Ok(self.into_expect_tls12_certificate(version))
+        Ok(self.into_expect_tls12_certificate())
     }
 }
 
