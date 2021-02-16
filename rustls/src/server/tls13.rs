@@ -280,7 +280,7 @@ impl CompleteClientHelloHandling {
         resumedata: Option<&persist::ServerSessionValue>,
     ) -> Result<(), TLSError> {
         let mut ep = hs::ExtensionProcessing::new();
-        ep.process_common(sess, Some(server_key), hello, resumedata, &self.handshake)?;
+        ep.process_common(sess, Some(server_key), hello, resumedata, &self.handshake, ProtocolVersion::TLSv1_3)?;
 
         let ee = Message {
             typ: ContentType::Handshake,

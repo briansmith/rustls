@@ -582,7 +582,7 @@ impl State for ExpectServerHello {
         sess.common.negotiated_version = Some(version);
 
         // Extract ALPN protocol
-        if !sess.common.is_tls13() {
+        if version != TLSv1_3 {
             process_alpn_protocol(sess, server_hello.get_alpn_protocol())?;
         }
 
@@ -636,7 +636,7 @@ impl State for ExpectServerHello {
 
         // For TLS1.3, start message encryption using
         // handshake_traffic_secret.
-        if sess.common.is_tls13() {
+        if version == TLSv1_3 {
             tls13::validate_server_hello(sess, &server_hello)?;
             let (key_schedule, hash_at_client_recvd_server_hello) = tls13::start_handshake_traffic(
                 sess,

@@ -152,6 +152,7 @@ impl ExtensionProcessing {
         hello: &ClientHelloPayload,
         resumedata: Option<&persist::ServerSessionValue>,
         handshake: &HandshakeDetails,
+        negotiated_version: ProtocolVersion,
     ) -> Result<(), TLSError> {
         // ALPN
         let our_protocols = &sess.config.alpn_protocols;
@@ -199,7 +200,7 @@ impl ExtensionProcessing {
                 if let Some(resume) = resumedata {
                     if sess.config.max_early_data_size > 0
                         && hello.early_data_extension_offered()
-                        && resume.version == sess.common.negotiated_version.unwrap()
+                        && resume.version == negotiated_version
                         && resume.cipher_suite == sess.common.get_suite_assert().suite
                         && resume.alpn.as_ref().map(|x| &x.0) == sess.alpn_protocol.as_ref()
                         && !sess.reject_early_data
@@ -230,7 +231,7 @@ impl ExtensionProcessing {
                     .find_extension(ExtensionType::StatusRequest)
                     .is_some()
             {
-                if server_key.has_ocsp() && !sess.common.is_tls13() {
+                if server_key.has_ocsp() && negotiated_version != ProtocolVersion::TLSv1_3 {
                     // Only TLS1.2 sends confirmation in ServerHello
                     self.exts
                         .push(ServerExtension::CertificateStatusAck);
@@ -244,7 +245,7 @@ impl ExtensionProcessing {
                 && hello
                     .find_extension(ExtensionType::SCT)
                     .is_some() {
-                if !sess.common.is_tls13() {
+                if negotiated_version != ProtocolVersion::TLSv1_3 {
                     // Take the SCT list, if any, so we don't send it later,
                     // and put it in the legacy extension.
                     server_key.take_sct_list().map(|sct_list| self.exts
@@ -374,7 +375,7 @@ impl ExpectClientHello {
         resumedata: Option<&persist::ServerSessionValue>,
     ) -> Result<(), TLSError> {
         let mut ep = ExtensionProcessing::new();
-        ep.process_common(sess, server_key, hello, resumedata, &self.handshake)?;
+        ep.process_common(sess, server_key, hello, resumedata, &self.handshake, ProtocolVersion::TLSv1_2)?;
         ep.process_tls12(sess, hello, &self.handshake);
 
         self.send_ticket = ep.send_ticket;
@@ -788,7 +789,7 @@ impl State for ExpectClientHello {
             .random
             .write_slice(&mut self.handshake.randoms.client);
 
-        if sess.common.is_tls13() {
+        if version == ProtocolVersion::TLSv1_3 {
             return self
                 .into_complete_tls13_client_hello_handling()
                 .handle_client_hello(sess, certkey, &m);
